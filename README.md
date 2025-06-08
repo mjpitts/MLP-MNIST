@@ -1,0 +1,1 @@
+Implementing a simple Multi-layer Perceptron in pytorch to train on the MNIST dataset
