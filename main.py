@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from util import logMessage
 from neuralNet import NeuralNet
 import torch.nn as nn
+from sklearn.metrics import confusion_matrix
 
 """
 input: Hyperparameters thsat will define the loader batch sizes, ie: how many
@@ -41,10 +42,10 @@ def plotExample(data, truth):
 def main():
 
     # Init our training hyperparameters
-    n_epochs = 10
+    n_epochs = 50
     train_batch_size = 100
     test_batch_size = 1000
-    learning_rate = 1e-3
+    learning_rate = 1e-4
 
     # Set device to GPU if possible
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -72,7 +73,7 @@ def main():
 
     # Array of loss history
     loss_history = []
-    steps = [i for i in range(6000//10)]
+    steps = [i for i in range((6000//train_batch_size) * n_epochs)]
 
     # Train the model
     n_total_steps = len(train_loader)
@@ -122,6 +123,11 @@ def main():
                 acc = n_correct / n_samples
                 print(f'Accuracy of the network on the {n_samples} test images: {100*acc} %')
                 break
+
+        pred = predicted.cpu()
+        labs = labels.cpu()
+
+        print(confusion_matrix(pred, labs, labels=[0,1,2,3,4,5,6,7,8,9]))
 
         # Plot and save loss.
         plt.clf()
