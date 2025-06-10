@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from util import logMessage
 from neuralNet import NeuralNet
 import torch.nn as nn
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report
 
 """
 input: Hyperparameters thsat will define the loader batch sizes, ie: how many
@@ -42,7 +42,7 @@ def plotExample(data, truth):
 def main():
 
     # Init our training hyperparameters
-    n_epochs = 50
+    n_epochs = 1
     train_batch_size = 100
     test_batch_size = 1000
     learning_rate = 1e-4
@@ -77,7 +77,6 @@ def main():
 
     # Train the model
     n_total_steps = len(train_loader)
-    step = 0
     for epoch in range(n_epochs):
         for i, (images, labels) in enumerate(train_loader):  
             # origin shape: [100, 1, 28, 28]
@@ -107,16 +106,25 @@ def main():
         # minus 1, because on batch was used to create figures.
         n_samples = (len(test_loader) - 1) * test_batch_size
 
+        total_pred = []
+        total_labs = []
+
         while True:
             try:
                 images, labels = next(test_loader)
                 images = images.reshape(-1, 28*28).to(device)
                 labels = labels.to(device)
+                # Accumulate labels
+                for i in labels.cpu():
+                    total_labs.append(int(i))
 
                 outputs = model.forward(images)
 
                 # max returns (output_value ,index)
                 _, predicted = torch.max(outputs, 1)
+                # Accumulate predictions
+                for i in predicted.cpu():
+                    total_pred.append(int(i))
                 n_correct += (predicted == labels).sum().item()
 
             except StopIteration:
@@ -124,10 +132,24 @@ def main():
                 print(f'Accuracy of the network on the {n_samples} test images: {100*acc} %')
                 break
 
-        pred = predicted.cpu()
-        labs = labels.cpu()
 
-        print(confusion_matrix(pred, labs, labels=[0,1,2,3,4,5,6,7,8,9]))
+        # Create confusion matrix
+        confusionMat = confusion_matrix(total_pred, total_labs, labels=[0,1,2,3,4,5,6,7,8,9])
+
+        # Print class metrics    
+        print(classification_report(total_pred, total_labs))
+        
+        # Init array that counts total true instances of this class
+        class_count = [0 for i in range(10)]
+        # Init array that counts total number of prediction of this 
+        total_pred_count = [0 for i in range(10)]
+
+        # Create class count matrix
+        for num in range(10):
+            for i, pred_count in enumerate(confusionMat[num]):
+                class_count[i] += int(pred_count)
+                total_pred_count[num] += int(pred_count)
+
 
         # Plot and save loss.
         plt.clf()
